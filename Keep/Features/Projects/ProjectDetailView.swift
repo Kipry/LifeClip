@@ -121,6 +121,9 @@ struct ProjectDetailView: View {
             Theme.background.ignoresSafeArea()
             content
         }
+        // Measured before the offset is applied, so the drag can't feed its own
+        // measurement back in.
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { pageWidth = $0 }
         .offset(x: backSwipeX)
         .background(Theme.background.ignoresSafeArea())
         // Swipe in from the left edge to go back to the library.
@@ -379,6 +382,11 @@ struct ProjectDetailView: View {
     /// rather than "I missed the edge".
     private let backSwipeZone: CGFloat = 44
 
+    /// How far the page has to travel to be gone — its own width, not the
+    /// display's. Zero until the first layout, which the two readers below
+    /// fall back around rather than clamping the drag to nothing.
+    @State private var pageWidth: CGFloat = 0
+
     private var backSwipeGesture: some Gesture {
         DragGesture(minimumDistance: 12, coordinateSpace: .global)
             .onChanged { v in
@@ -386,7 +394,7 @@ struct ProjectDetailView: View {
                 // Tracks the finger the whole way to the edge now, not just the
                 // first 220pt — a page that only ever peeked out from under
                 // its own content never looked like it was actually leaving.
-                backSwipeX = min(v.translation.width, UIScreen.main.bounds.width)
+                backSwipeX = pageWidth > 0 ? min(v.translation.width, pageWidth) : v.translation.width
             }
             .onEnded { v in
                 let committed = v.startLocation.x < backSwipeZone
@@ -401,7 +409,7 @@ struct ProjectDetailView: View {
                     // page is already gone by the time that transition takes
                     // over, so its direction is never seen.
                     withAnimation(.easeOut(duration: 0.22)) {
-                        backSwipeX = UIScreen.main.bounds.width
+                        backSwipeX = pageWidth > 0 ? pageWidth : 1200
                     }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) { dismiss() }
                 } else {
@@ -505,7 +513,12 @@ struct ProjectDetailView: View {
                     Rectangle().fill(Theme.filmCard)
                 }
             }
-            .frame(width: UIScreen.main.bounds.width, height: Self.posterHeight)
+            // Fills the page rather than the display. Pinned to the screen
+            // width, the poster is wider than its own page the moment the
+            // window isn't full-screen — it overflows and gets clipped
+            // off-centre, which is the loudest possible way to look broken.
+            .frame(maxWidth: .infinity)
+            .frame(height: Self.posterHeight)
             .clipped()
             .overlay {
                 // Dissolves into the page so the filmstrip reads as a

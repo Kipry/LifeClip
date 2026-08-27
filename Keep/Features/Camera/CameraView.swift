@@ -48,6 +48,9 @@ struct CameraView: View {
     @State private var torchOn = false
     @State private var screenFlashOn = false
     @State private var savedBrightness: CGFloat = UIScreen.main.brightness
+    /// The camera screen's own size. Replaces `UIScreen.main.bounds`, which
+    /// answers for the display rather than for this view.
+    @State private var viewSize: CGSize = .zero
     @State private var setupError: String?
     @State private var deniedPermission: CameraError?
 
@@ -95,6 +98,7 @@ struct CameraView: View {
             startHaptic.impactOccurred(intensity: 1.0)
             stopHaptic.prepare()          // warm for the stop that follows
         }
+        .onGeometryChange(for: CGSize.self) { $0.size } action: { viewSize = $0 }
         .statusBarHidden(true)
         .animation(.easeInOut(duration: 0.25), value: showZoomLabel)
         .animation(.easeInOut(duration: 0.2), value: showExposureControl)
@@ -127,8 +131,12 @@ struct CameraView: View {
             }
 
             if showExposureControl, let pt = focusPoint {
-                let sw = UIScreen.main.bounds.width
-                let sh = UIScreen.main.bounds.height
+                // The camera view's own size, not the screen's. They are the
+                // same thing on an iPhone and only there — an iPhone app on
+                // iPad runs in a window that is not the display, and the
+                // slider would be positioned against a canvas it isn't in.
+                let sw = viewSize.width
+                let sh = viewSize.height
                 ExposureSliderView(
                     bias: camera.exposureBias,
                     onDragStart: { dragStartBias = camera.exposureBias },
@@ -411,7 +419,12 @@ struct CameraView: View {
 
     private var tapToFocusGesture: some Gesture {
         SpatialTapGesture().onEnded { value in
-            let size = UIScreen.main.bounds.size
+            // Normalised against the view the tap landed in. Against the
+            // screen instead, every tap maps to the wrong point the moment the
+            // window isn't the full display — the camera focuses somewhere
+            // other than where you touched.
+            let size = viewSize
+            guard size.width > 0, size.height > 0 else { return }
             let normPt = CGPoint(x: value.location.x / size.width,
                                  y: value.location.y / size.height)
             camera.focusAt(normPt)
