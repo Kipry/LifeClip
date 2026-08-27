@@ -39,13 +39,13 @@ struct OnboardingView: View {
                     )
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-
-            VStack(spacing: 0) {
-                Spacer()
-                bottomOverlay
-            }
-            .ignoresSafeArea(edges: .bottom)
         }
+        // The CTA is an inset, not a floating overlay. As an overlay it sat on
+        // top of the page and simply covered whatever didn't fit — on a canvas
+        // shorter than the design assumed, that was the button itself, cut off
+        // by the bottom edge with no way to reach it. As an inset it always has
+        // its own room, and the step above gets exactly what's left.
+        .safeAreaInset(edge: .bottom, spacing: 0) { bottomOverlay }
         // Swipe left/right anywhere to page through the steps — attached to the
         // root (not stepContent, whose .id(step) identity swap would kill an
         // in-flight gesture). simultaneousGesture + 24pt threshold keeps the
@@ -137,7 +137,10 @@ struct OnboardingView: View {
                 ctaButton
             }
             .padding(.horizontal, 28)
-            .padding(.bottom, 44)
+            // Was 44 while this ignored the safe area. As an inset the home
+            // indicator is already accounted for, so the same visual gap needs
+            // only the remainder.
+            .padding(.bottom, 10)
             .background(Theme.background)
         }
     }
@@ -191,6 +194,27 @@ private struct StepShell<Visual: View>: View {
     }
 
     var body: some View {
+        // Every step is a fixed-size illustration above text that can't shrink.
+        // That fits an iPhone and was never asked to fit anything else — on a
+        // shorter canvas the page was simply clipped, top and bottom, and App
+        // Review saw an onboarding whose artwork ran off the top edge.
+        //
+        // `ViewThatFits` keeps the designed layout wherever it fits and hands
+        // over to a scrolling one where it doesn't. Nothing is ever cut off;
+        // at worst it scrolls.
+        ViewThatFits(in: .vertical) {
+            page
+            ScrollView(.vertical, showsIndicators: false) { page }
+        }
+        // Kept at roughly the width this was drawn for. Stretched across an
+        // iPad-sized canvas the headline runs to the far edge and the phone
+        // mock floats in the middle of an empty field — the same content, and
+        // much worse to read.
+        .frame(maxWidth: 430)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var page: some View {
         VStack(alignment: .leading, spacing: 0) {
             visual
                 .frame(maxWidth: .infinity)
@@ -216,7 +240,9 @@ private struct StepShell<Visual: View>: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.horizontal, 28)
-            .padding(.bottom, 140)
+            // The CTA reserves its own space now, so this no longer has to
+            // guess how tall it is.
+            .padding(.bottom, 24)
         }
     }
 }
