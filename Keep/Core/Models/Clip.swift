@@ -29,7 +29,10 @@ final class Clip {
     // exact same composition/playback pipeline as a real clip) plus a reference
     // to the original image so the display duration can be re-rendered later.
     var isPhoto: Bool = false
-    var photoDuration: Double = 3.0
+    /// Only a fallback: every import sets this from the user's clip length.
+    /// Left at a hard 3.0 it was a second, silent answer to the question
+    /// the recording-length setting already answers.
+    var photoDuration: Double = RecordingDuration.standard
     var photoSourceURLString: String? = nil
 
     // MARK: Location

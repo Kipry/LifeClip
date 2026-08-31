@@ -22,6 +22,9 @@ struct ProjectDetailView: View {
     @State private var exportProgress: Double = 0
     @State private var exportError: String?
     @State private var importSelections: [PhotosPickerItem] = []
+    /// How long an imported photo shows for, so a still matches the length
+    /// of the clips it sits between.
+    @AppStorage("defaultRecordingDuration") private var defaultDuration = RecordingDuration.standard
     @State private var isImporting = false
     @State private var clipToDelete: Clip?
     @State private var showBulkDeleteConfirm = false
@@ -1022,7 +1025,11 @@ struct ProjectDetailView: View {
 
         // Priority: PHAsset date (most reliable) → EXIF in the raw image data → now.
         let created = phDate ?? Self.exifCreationDate(from: imageData) ?? Date()
-        let duration = 3.0
+        // The same length a recorded clip gets. At a fixed 3 s an imported photo
+        // sat on screen for roughly twice as long as everything around it in the
+        // finished film. Resolved, so a stored value that no longer has a pill
+        // of its own lands on one that does.
+        let duration = RecordingDuration.resolve(defaultDuration)
         guard let movURL = try? await composer.renderStillVideo(from: imageURL, duration: duration) else {
             // Don't leave the JPEG behind when no clip will reference it.
             try? FileManager.default.removeItem(at: imageURL)

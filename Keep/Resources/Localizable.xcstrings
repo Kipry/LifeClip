@@ -3137,7 +3137,15 @@
       }
     },
     "Wind the reel · Export" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Film erstellen"
+          }
+        }
+      }
     },
     "Workout" : {
       "extractionState" : "manual",
