@@ -467,9 +467,9 @@ private struct LocalVault: View {
 private struct StepLockScreen: View {
     var body: some View {
         StepShell(
-            eyebrow:  "ONE TAP",
-            headline: "Tap. Record.\nDone.",
-            subtext:  "Three seconds from the lock screen - then you're back in the moment instead of behind a phone."
+            eyebrow:  "RECORD",
+            headline: "Faster than the moment is gone.",
+            subtext:  "Hold on to it without missing it."
         ) {
             PhoneFrame { LockPhaseAnimation() }
         }
@@ -783,7 +783,7 @@ private struct SuccessPhase: View {
                     .font(.hand(38))
                     .foregroundStyle(.white)
                     .padding(.top, 28)
-                Text("Three seconds. Phone back in your pocket.")
+                Text("A second and a half. Phone back in your pocket.")
                     .font(.system(size: 15))
                     .foregroundStyle(.white.opacity(0.45))
                     .multilineTextAlignment(.center)

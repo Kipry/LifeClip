@@ -1947,13 +1947,13 @@
         }
       }
     },
-    "ONE TAP" : {
+    "RECORD" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "EIN TIPP"
+            "value" : "AUFNEHMEN"
           }
         }
       }
@@ -2671,13 +2671,13 @@
         }
       }
     },
-    "Tap. Record.\nDone." : {
+    "Faster than the moment is gone." : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tippen. Aufnehmen.\nFertig."
+            "value" : "Schneller als der Moment vorbei ist."
           }
         }
       }
@@ -2836,24 +2836,24 @@
         }
       }
     },
-    "Three seconds from the lock screen - then you're back in the moment instead of behind a phone." : {
+    "Hold on to it without missing it." : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Drei Sekunden vom Sperrbildschirm - dann ist das Handy weg und du wieder im Moment."
+            "value" : "Halte ihn fest, ohne ihn zu verpassen."
           }
         }
       }
     },
-    "Three seconds. Phone back in your pocket." : {
+    "A second and a half. Phone back in your pocket." : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Drei Sekunden. Handy zurück in die Tasche."
+            "value" : "Anderthalb Sekunden. Handy zurück in die Tasche."
           }
         }
       }
