@@ -254,7 +254,7 @@ private struct StepWelcome: View {
         StepShell(
             eyebrow:  "WELCOME",
             headline: "Hold the moment.",
-            subtext:  "keep. — your life, memory by memory."
+            subtext:  "keep. - your life, memory by memory."
         ) {
             VStack(spacing: 46) {
                 AmberLens()
@@ -356,7 +356,7 @@ private struct StepPrivate: View {
         StepShell(
             eyebrow:  "YOURS ALONE",
             headline: "Stays on\nyour phone.",
-            subtext:  "No cloud. No account. No feed. Your clips never leave this device — there is nobody here but you."
+            subtext:  "No cloud. No account. No feed. Your clips never leave this device - there is nobody here but you."
         ) {
             LocalVault()
                 .padding(.top, 20)
@@ -469,7 +469,7 @@ private struct StepLockScreen: View {
         StepShell(
             eyebrow:  "ONE TAP",
             headline: "Tap. Record.\nDone.",
-            subtext:  "Three seconds from the lock screen — then you're back in the moment instead of behind a phone."
+            subtext:  "Three seconds from the lock screen - then you're back in the moment instead of behind a phone."
         ) {
             PhoneFrame { LockPhaseAnimation() }
         }
@@ -811,7 +811,7 @@ private struct StepLibrary: View {
         StepShell(
             eyebrow:  "LIBRARY",
             headline: "Your story.",
-            subtext:  "Holidays, workouts, ordinary days — each one adds a clip."
+            subtext:  "Holidays, workouts, everyday life - hold on to yours."
         ) {
             PhoneFrame { ProjectGridMock() }
         }
@@ -980,7 +980,7 @@ private struct StepFilmstrip: View {
         StepShell(
             eyebrow:  "FILMSTRIP",
             headline: "Your cut.\nFrame by frame.",
-            subtext:  "Trim, sort, rearrange your clips.\nPress play to see the film so far."
+            subtext:  "Trim, sort and rearrange your clips."
         ) {
             PhoneFrame { FilmstripMock() }
         }
@@ -1325,7 +1325,7 @@ private struct StepWidget: View {
         StepShell(
             eyebrow:  "YOUR TRIGGER",
             headline: "Put the REC button\non your lock screen.",
-            subtext:  "Add it once — after that, every recording is one tap away."
+            subtext:  "Add it once - after that, every recording is one tap away."
         ) {
             PhoneFrame { WidgetSetupMock() }
         }
@@ -1417,7 +1417,7 @@ private struct WidgetSetupMock: View {
     private let steps: [(LocalizedStringKey, LocalizedStringKey)] = [
         ("Long-press the lock screen", "Tap “Customize”"),
         ("Add a widget",               "Choose keep. from the list"),
-        ("Place the REC circle",        "Done — 1 tap to record")
+        ("Place the REC circle",        "Done - 1 tap to record")
     ]
 }
 

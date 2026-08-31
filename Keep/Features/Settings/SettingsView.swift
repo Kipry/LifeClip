@@ -4,7 +4,7 @@ import UIKit
 struct SettingsView: View {
     @AppStorage("defaultRecordingDuration") private var defaultDuration = RecordingDuration.standard
     // Key must match RecordingQuality.defaultsKey.
-    @AppStorage("recordingQuality") private var recordingQuality = RecordingQuality.p1080.rawValue
+    @AppStorage("recordingQuality") private var recordingQuality = RecordingQuality.p4K.rawValue
     @AppStorage("locationGranularity") private var locationGranularity = "place"
     // Key must match ClipAudioLevels.defaultsKey — spelled out here because a
     // property initialiser can't reach a main-actor-isolated static.

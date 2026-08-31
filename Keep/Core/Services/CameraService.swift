@@ -18,11 +18,12 @@ enum RecordingQuality: String, CaseIterable, Identifiable {
 
     static let defaultsKey = "recordingQuality"
 
-    /// 1080p by default. `@AppStorage` doesn't write its default into
+    /// 4K by default. `@AppStorage` doesn't write its default into
     /// `UserDefaults` until the user touches the control, so an absent value
-    /// has to mean the default here too.
+    /// has to mean the default here too — which is why this constant is
+    /// repeated at each `@AppStorage` site rather than read from one place.
     static var current: RecordingQuality {
-        RecordingQuality(rawValue: UserDefaults.standard.string(forKey: defaultsKey) ?? "") ?? .p1080
+        RecordingQuality(rawValue: UserDefaults.standard.string(forKey: defaultsKey) ?? "") ?? .p4K
     }
 
     var id: String { rawValue }

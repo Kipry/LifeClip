@@ -9,14 +9,14 @@ struct CompilationOptionsView: View {
     @Environment(\.dismiss) private var dismiss
 
     // Key must match RecordingQuality.defaultsKey.
-    @AppStorage("recordingQuality") private var recordingQualityRaw = RecordingQuality.p1080.rawValue
+    @AppStorage("recordingQuality") private var recordingQualityRaw = RecordingQuality.p4K.rawValue
 
     @State private var holdProgress: CGFloat = 0
     @State private var isHolding = false
     @State private var holdTask: Task<Void, Never>?
 
     private var recordingQuality: RecordingQuality {
-        RecordingQuality(rawValue: recordingQualityRaw) ?? .p1080
+        RecordingQuality(rawValue: recordingQualityRaw) ?? .p4K
     }
 
     /// Only worth asking when the footage can actually carry the difference.

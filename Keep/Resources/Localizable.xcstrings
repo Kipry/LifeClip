@@ -349,13 +349,13 @@
         }
       }
     },
-    "Add it once — after that, every recording is one tap away." : {
+    "Add it once - after that, every recording is one tap away." : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Einmal einrichten — danach ist jede Aufnahme nur einen Tipp entfernt."
+            "value" : "Einmal einrichten - danach ist jede Aufnahme nur einen Tipp entfernt."
           }
         }
       }
@@ -548,7 +548,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Clips rein.\nVideo raus."
+            "value" : "Clips rein.\nFilm raus."
           }
         }
       }
@@ -988,13 +988,13 @@
         }
       }
     },
-    "Done — 1 tap to record" : {
+    "Done - 1 tap to record" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "fertig — ab jetzt 1 Tipp bis zur Aufnahme"
+            "value" : "fertig - ab jetzt 1 Tipp bis zur Aufnahme"
           }
         }
       }
@@ -1274,13 +1274,13 @@
         }
       }
     },
-    "Holidays, workouts, ordinary days — each one adds a clip." : {
+    "Holidays, workouts, everyday life - hold on to yours." : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Urlaub, Workout, Alltag — jeder Tag legt einen Clip dazu."
+            "value" : "Urlaub, Workout, Alltag - halte dein Leben fest."
           }
         }
       }
@@ -1385,13 +1385,13 @@
     "keep." : {
 
     },
-    "keep. — your life, memory by memory." : {
+    "keep. - your life, memory by memory." : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "keep. — deine Erlebnisse, Erinnerung nach Erinnerung."
+            "value" : "keep. - deine Erlebnisse, Erinnerung nach Erinnerung."
           }
         }
       }
@@ -1793,13 +1793,13 @@
         }
       }
     },
-    "No cloud. No account. No feed. Your clips never leave this device — there is nobody here but you." : {
+    "No cloud. No account. No feed. Your clips never leave this device - there is nobody here but you." : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keine Cloud. Kein Konto. Kein Feed. Deine Clips verlassen dieses Gerät nicht — hier bist nur du."
+            "value" : "Keine Cloud. Kein Konto. Kein Feed. Deine Clips verlassen dieses Gerät nicht - hier bist nur du."
           }
         }
       }
@@ -1975,7 +1975,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ein Tipp — und aus allen Clips wird ein Film."
+            "value" : "Ein Tipp - und aus allen Clips wird ein Film."
           }
         }
       }
@@ -1986,7 +1986,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tippen — direkt aufnehmen"
+            "value" : "Tippen - direkt aufnehmen"
           }
         }
       }
@@ -2836,13 +2836,13 @@
         }
       }
     },
-    "Three seconds from the lock screen — then you're back in the moment instead of behind a phone." : {
+    "Three seconds from the lock screen - then you're back in the moment instead of behind a phone." : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Drei Sekunden vom Sperrbildschirm — dann ist das Handy weg und du wieder im Moment."
+            "value" : "Drei Sekunden vom Sperrbildschirm - dann ist das Handy weg und du wieder im Moment."
           }
         }
       }
@@ -2968,13 +2968,13 @@
         }
       }
     },
-    "Trim, sort, rearrange your clips.\nPress play to see the film so far." : {
+    "Trim, sort and rearrange your clips." : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Clips trimmen, sortieren, neu anordnen.\nAuf Play tippen und den Film bisher ansehen."
+            "value" : "Clips trimmen, sortieren, neu anordnen."
           }
         }
       }
