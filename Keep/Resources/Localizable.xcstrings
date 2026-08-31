@@ -269,7 +269,15 @@
       }
     },
     "1 Item Not Imported" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 Objekt nicht importiert"
+          }
+        }
+      }
     },
     "1 week ago" : {
       "extractionState" : "manual",
@@ -540,7 +548,15 @@
       }
     },
     "Clips" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clips"
+          }
+        }
+      }
     },
     "Clips in.\nVideo out." : {
       "extractionState" : "manual",
@@ -598,7 +614,15 @@
       }
     },
     "COMPILING YOUR REEL" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DEIN FILM WIRD ERSTELLT"
+          }
+        }
+      }
     },
     "COMPILING YOUR VIDEO" : {
       "extractionState" : "manual",
@@ -920,7 +944,15 @@
       }
     },
     "Deleted projects and clips wait here\nfor %lld days before they're removed." : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gelöschte Projekte und Clips bleiben hier\n%lld Tage lang, bevor sie entfernt werden."
+          }
+        }
+      }
     },
     "Diary" : {
       "extractionState" : "manual",
@@ -1330,7 +1362,15 @@
       }
     },
     "Importing…" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird importiert …"
+          }
+        }
+      }
     },
     "in %lld days" : {
       "extractionState" : "manual",
@@ -1366,7 +1406,15 @@
       }
     },
     "Items are removed automatically after %lld days." : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Objekte werden nach %lld Tagen automatisch entfernt."
+          }
+        }
+      }
     },
     "keep" : {
 
@@ -1667,10 +1715,26 @@
 
     },
     "Move %lld clips to trash?" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Clips in den Papierkorb?"
+          }
+        }
+      }
     },
     "Move 1 clip to trash?" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 Clip in den Papierkorb?"
+          }
+        }
+      }
     },
     "Move to Trash" : {
       "extractionState" : "manual",
@@ -2523,7 +2587,15 @@
       }
     },
     "Slide to lock" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zum Sperren wischen"
+          }
+        }
+      }
     },
     "Smaller file" : {
       "extractionState" : "manual",
@@ -2658,7 +2730,15 @@
       }
     },
     "Tap the shutter to stop" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zum Stoppen antippen"
+          }
+        }
+      }
     },
     "TAP TO CLOSE" : {
       "extractionState" : "manual",
