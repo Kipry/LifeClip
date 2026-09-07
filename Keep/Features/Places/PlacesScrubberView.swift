@@ -59,13 +59,15 @@ struct PlacesScrubberView: View {
     // MARK: Month scale (condensed timeline variant)
 
     private func monthScale(cx: CGFloat) -> some View {
-        ZStack(alignment: .topLeading) {
+        // Same 11pt/1.2 styling the labels below are drawn with, measured once
+        // per layout rather than per segment.
+        let perChar = MonthSeg.advance(size: 11, tracking: 1.2)
+        return ZStack(alignment: .topLeading) {
             Color.clear
             ForEach(monthSegs) { seg in
                 let leftX = cx + CGFloat(Double(seg.startTag) - centerDay) * px
                 let w = CGFloat(seg.days) * px
                 let isActive = focusedDay >= seg.startTag && focusedDay < seg.startTag + seg.days
-                let labelX = min(max(cx, leftX + 26), leftX + w - 26)
 
                 if isActive {
                     RoundedRectangle(cornerRadius: 7)
@@ -78,12 +80,20 @@ struct PlacesScrubberView: View {
                     .fill(.white.opacity(0.12))
                     .frame(width: 1, height: 22)
                     .position(x: leftX, y: 11)
-                Text(seg.label(short: w <= 70))
-                    .font(.mono(11, weight: .medium))
-                    .tracking(1.2)
-                    .foregroundStyle(isActive ? Theme.amber : .white.opacity(0.5))
-                    .fixedSize()
-                    .position(x: labelX.isFinite ? labelX : leftX + w / 2, y: 11)
+                // Clamped inside its own month, half-width included, so a long
+                // name can't reach across the divider into the next one.
+                if let label = seg.label(fitting: w, perCharacter: perChar) {
+                    let half  = label.width / 2
+                    let lower = leftX + half + 4
+                    let upper = leftX + w - half - 4
+                    let x = lower <= upper ? min(max(cx, lower), upper) : leftX + w / 2
+                    Text(verbatim: label.text)
+                        .font(.mono(11, weight: .medium))
+                        .tracking(1.2)
+                        .foregroundStyle(isActive ? Theme.amber : .white.opacity(0.5))
+                        .fixedSize()
+                        .position(x: x.isFinite ? x : leftX + w / 2, y: 11)
+                }
             }
         }
         .frame(maxWidth: .infinity)
