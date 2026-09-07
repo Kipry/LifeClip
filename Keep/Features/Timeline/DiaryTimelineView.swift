@@ -119,30 +119,31 @@ struct MonthSeg: Identifiable {
     let days: Int
     let shortLabel: String  // "MMM" — pre-computed, no per-frame DateFormatter
     let fullLabel: String   // "MMMM"
-    /// Rendered widths, measured once when the segments are built.
-    ///
-    /// The scale used to pick the label from the segment's pixel width against
-    /// a fixed 70 — a guess that has nothing to do with how wide the word
-    /// actually is. "SEPTEMBER" is about 90pt at this size and tracking, so a
-    /// 75pt-wide month took the long name and spilled into its neighbours.
-    let shortWidth: CGFloat
-    let fullWidth: CGFloat
-
     /// The longest label that fits inside `width`, or nil when even the short
     /// one doesn't — better a month with no name than two names on top of
     /// each other.
-    func label(fitting width: CGFloat) -> (text: String, width: CGFloat)? {
-        if fullWidth + 12 <= width  { return (fullLabel, fullWidth) }
-        if shortWidth + 8 <= width  { return (shortLabel, shortWidth) }
+    ///
+    /// The scale used to pick the label from the segment's pixel width against
+    /// a fixed 70 — a number with nothing to do with how wide the word is.
+    /// "SEPTEMBER" runs about 90pt at the diary's size, so a 75pt month took
+    /// the long name and reached into its neighbours.
+    ///
+    /// `perCharacter` rather than a stored width: the two month scales in the
+    /// app draw at different sizes, and the face is monospaced, so one advance
+    /// measured once per layout describes both.
+    func label(fitting width: CGFloat, perCharacter: CGFloat) -> (text: String, width: CGFloat)? {
+        let full = CGFloat(fullLabel.count) * perCharacter
+        if full + 12 <= width { return (fullLabel, full) }
+        let short = CGFloat(shortLabel.count) * perCharacter
+        if short + 8 <= width { return (shortLabel, short) }
         return nil
     }
 
-    /// Mono 12 with 1.5pt tracking, matching the scale's own styling.
-    static func measure(_ text: String) -> CGFloat {
-        let font = UIFont(name: "JetBrainsMono-Medium", size: 12)
-            ?? .monospacedSystemFont(ofSize: 12, weight: .medium)
-        let base = (text as NSString).size(withAttributes: [.font: font]).width
-        return base + CGFloat(text.count) * 1.5
+    /// Width of one character plus its tracking, for the mono face the scales use.
+    static func advance(size: CGFloat, tracking: CGFloat) -> CGFloat {
+        let font = UIFont(name: "JetBrainsMono-Medium", size: size)
+            ?? .monospacedSystemFont(ofSize: size, weight: .medium)
+        return ("0" as NSString).size(withAttributes: [.font: font]).width + tracking
     }
 }
 
@@ -161,13 +162,10 @@ extension TimelineData {
         while cursor < end && guardCount < 600 {
             let days = calendar.range(of: .day, in: .month, for: cursor)?.count ?? 30
             let startTag = calendar.dateComponents([.day], from: startDate, to: cursor).day ?? 0
-            let short = shortFmt.string(from: cursor).uppercased()
-            let full  = fullFmt.string(from: cursor).uppercased()
             segs.append(MonthSeg(
                 date: cursor, startTag: startTag, days: days,
-                shortLabel: short, fullLabel: full,
-                shortWidth: MonthSeg.measure(short),
-                fullWidth:  MonthSeg.measure(full)
+                shortLabel: shortFmt.string(from: cursor).uppercased(),
+                fullLabel:  fullFmt.string(from: cursor).uppercased()
             ))
             cursor = calendar.date(byAdding: .month, value: 1, to: cursor) ?? end
             guardCount += 1
@@ -584,6 +582,7 @@ struct DiaryTimelineView: View {
     @ViewBuilder
     private func monthScale(cx: CGFloat, data: TimelineData) -> some View {
         let segs = cachedMonthSegs
+        let perChar = MonthSeg.advance(size: 12, tracking: 1.5)
         ZStack(alignment: .topLeading) {
             Color.clear
             ForEach(segs) { seg in
@@ -608,7 +607,7 @@ struct DiaryTimelineView: View {
                 // The clamp now accounts for the label's half-width, so a name
                 // that only just fits stops at the divider instead of reaching
                 // across it.
-                if let label = seg.label(fitting: w) {
+                if let label = seg.label(fitting: w, perCharacter: perChar) {
                     let half  = label.width / 2
                     let lower = leftX + half + 4
                     let upper = leftX + w - half - 4
