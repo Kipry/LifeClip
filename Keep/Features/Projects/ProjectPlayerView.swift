@@ -5,6 +5,9 @@ struct ProjectPlayerView: View {
     let project: Project
 
     @Environment(\.dismiss) private var dismiss
+    /// Owns the transform maths the export already had, so the preview
+    /// composes each clip the same way instead of a second time, differently.
+    private let composer = VideoComposer()
     @State private var player: AVPlayer?
     @State private var buildFailed = false
     @State private var isPlaying = true
@@ -254,6 +257,9 @@ struct ProjectPlayerView: View {
 
         var cursor = CMTime.zero
         var firstAsset: AVURLAsset?
+        /// What went in, in order — the video composition below needs to know
+        /// which clip is on screen when, to give each its own transform.
+        var segments: [(asset: AVURLAsset, duration: CMTime)] = []
 
         for (index, clip) in clips.enumerated() {
             let asset = AVURLAsset(url: clip.fileURL)
@@ -280,17 +286,23 @@ struct ProjectPlayerView: View {
                 if gain != 1 { isLevelled = true }
             }
             if firstAsset == nil { firstAsset = asset }
+            segments.append((asset, span))
             cursor = CMTimeAdd(cursor, span)
         }
 
-        if let first = firstAsset,
-           let track = try? await first.loadTracks(withMediaType: .video).first,
-           let transform = try? await track.load(.preferredTransform) {
-            videoTrack.preferredTransform = transform
-        }
+        // Was: copy the first clip's preferredTransform onto the whole track.
+        // That is one orientation for every clip, and — worse — it left the
+        // track with a single natural size that AVFoundation stretched
+        // everything else to fit. A landscape photo in a portrait film came out
+        // squashed. Each clip now carries its own transform, scaled and cropped
+        // to the canvas exactly as the export does it.
+        let videoComposition = await composer.previewVideoComposition(
+            track: videoTrack, segments: segments
+        )
 
         let totalDuration = cursor.seconds
         let item = AVPlayerItem(asset: composition)
+        item.videoComposition = videoComposition
         if isLevelled {
             let mix = AVMutableAudioMix()
             mix.inputParameters = [audioParams]

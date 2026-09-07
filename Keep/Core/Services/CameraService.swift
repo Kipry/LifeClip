@@ -351,7 +351,22 @@ final class CameraService: NSObject, ObservableObject {
 
     private func configureAudioSession() throws {
         let a = AVAudioSession.sharedInstance()
-        // .measurement mode disables all DSP (AEC, noise reduction, AGC).
+        // .videoRecording, not .measurement.
+        //
+        // `.measurement` was chosen to disable input DSP (AEC, noise reduction,
+        // AGC) for a cleaner recording. But Apple's own description of it is
+        // that it "disables system-supplied signal processing for input *and
+        // output* signals" — and this session deliberately mixes with other
+        // audio, so whatever the user is listening to gets played back through
+        // that same unprocessed output. Losing the system's output levelling is
+        // heard as music jumping in volume the instant recording starts, which
+        // is exactly what was reported.
+        //
+        // `.videoRecording` is the mode meant for this: it tunes the input for
+        // recording video and leaves the output path alone. The recorded audio
+        // now carries Apple's standard video-recording processing rather than
+        // none at all — a real change in character, and the right trade against
+        // shouting into someone's headphones.
         //
         // Bluetooth routing — two profiles with very different behaviour:
         //   • .allowBluetooth     = HFP, a BIDIRECTIONAL profile. Including it lets iOS route
@@ -360,7 +375,7 @@ final class CameraService: NSObject, ObservableObject {
         //   • .allowBluetoothA2DP = A2DP, an OUTPUT-ONLY profile (no microphone path at all).
         //     Including it keeps background music playing over connected Bluetooth speakers /
         //     headphones during recording, while the recording itself stays on the built-in mics.
-        try a.setCategory(.playAndRecord, mode: .measurement,
+        try a.setCategory(.playAndRecord, mode: .videoRecording,
                           options: [.mixWithOthers, .allowBluetoothA2DP])
         // iOS silences ALL haptics by default while a .playAndRecord session is
         // active (so the taptic buzz can't bleed onto the mic track). Without

@@ -624,6 +624,49 @@ actor VideoComposer {
     // filling the canvas and centering (crops edges if the aspect ratio doesn't match).
     // When an AVMutableVideoComposition is used, track.preferredTransform is ignored,
     // so the rotation and scale MUST be embedded in the layer instruction.
+    // MARK: - Preview
+
+    /// The video composition the in-app preview needs.
+    ///
+    /// Without one, every clip goes into a single composition track — and a
+    /// track has exactly one natural size, taken from whatever went in first.
+    /// AVFoundation then *stretches* anything shaped differently to match it.
+    /// Recorded clips all share a shape, so they never showed it; an imported
+    /// photo in landscape, dropped into a portrait film, was squashed to fit.
+    /// The export never had the bug because it has always built one of these.
+    ///
+    /// Canvas is 1080 regardless of the recording setting: this renders live
+    /// while playing, in a view a few hundred points wide, so composing at 4K
+    /// would cost frames for detail nobody can see here. The transform per
+    /// clip is the export's, so the rehearsal really does match the film.
+    func previewVideoComposition(
+        track: AVCompositionTrack,
+        segments: [(asset: AVURLAsset, duration: CMTime)]
+    ) async -> AVMutableVideoComposition? {
+        guard let first = segments.first?.asset else { return nil }
+        let renderSize = await canvasSize(for: first, quality: .p1080)
+        guard renderSize.width > 0, renderSize.height > 0 else { return nil }
+
+        let layerInstr = AVMutableVideoCompositionLayerInstruction(assetTrack: track)
+        var cursor = CMTime.zero
+        for segment in segments {
+            layerInstr.setTransform(await clipTransform(for: segment.asset, into: renderSize),
+                                    at: cursor)
+            cursor = CMTimeAdd(cursor, segment.duration)
+        }
+        guard cursor.seconds > 0 else { return nil }
+
+        let instr = AVMutableVideoCompositionInstruction()
+        instr.timeRange = CMTimeRange(start: .zero, duration: cursor)
+        instr.layerInstructions = [layerInstr]
+
+        let vc = AVMutableVideoComposition()
+        vc.frameDuration = CMTime(value: 1, timescale: 30)
+        vc.renderSize    = renderSize
+        vc.instructions  = [instr]
+        return vc
+    }
+
     private func clipTransform(for asset: AVURLAsset, into renderSize: CGSize) async -> CGAffineTransform {
         guard let track = try? await asset.loadTracks(withMediaType: .video).first,
               let naturalSize = try? await track.load(.naturalSize),

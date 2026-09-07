@@ -119,7 +119,31 @@ struct MonthSeg: Identifiable {
     let days: Int
     let shortLabel: String  // "MMM" — pre-computed, no per-frame DateFormatter
     let fullLabel: String   // "MMMM"
-    func label(short: Bool) -> String { short ? shortLabel : fullLabel }
+    /// Rendered widths, measured once when the segments are built.
+    ///
+    /// The scale used to pick the label from the segment's pixel width against
+    /// a fixed 70 — a guess that has nothing to do with how wide the word
+    /// actually is. "SEPTEMBER" is about 90pt at this size and tracking, so a
+    /// 75pt-wide month took the long name and spilled into its neighbours.
+    let shortWidth: CGFloat
+    let fullWidth: CGFloat
+
+    /// The longest label that fits inside `width`, or nil when even the short
+    /// one doesn't — better a month with no name than two names on top of
+    /// each other.
+    func label(fitting width: CGFloat) -> (text: String, width: CGFloat)? {
+        if fullWidth + 12 <= width  { return (fullLabel, fullWidth) }
+        if shortWidth + 8 <= width  { return (shortLabel, shortWidth) }
+        return nil
+    }
+
+    /// Mono 12 with 1.5pt tracking, matching the scale's own styling.
+    static func measure(_ text: String) -> CGFloat {
+        let font = UIFont(name: "JetBrainsMono-Medium", size: 12)
+            ?? .monospacedSystemFont(ofSize: 12, weight: .medium)
+        let base = (text as NSString).size(withAttributes: [.font: font]).width
+        return base + CGFloat(text.count) * 1.5
+    }
 }
 
 extension TimelineData {
@@ -137,10 +161,13 @@ extension TimelineData {
         while cursor < end && guardCount < 600 {
             let days = calendar.range(of: .day, in: .month, for: cursor)?.count ?? 30
             let startTag = calendar.dateComponents([.day], from: startDate, to: cursor).day ?? 0
+            let short = shortFmt.string(from: cursor).uppercased()
+            let full  = fullFmt.string(from: cursor).uppercased()
             segs.append(MonthSeg(
                 date: cursor, startTag: startTag, days: days,
-                shortLabel: shortFmt.string(from: cursor).uppercased(),
-                fullLabel:  fullFmt.string(from: cursor).uppercased()
+                shortLabel: short, fullLabel: full,
+                shortWidth: MonthSeg.measure(short),
+                fullWidth:  MonthSeg.measure(full)
             ))
             cursor = calendar.date(byAdding: .month, value: 1, to: cursor) ?? end
             guardCount += 1
@@ -563,7 +590,6 @@ struct DiaryTimelineView: View {
                 let leftX = cx + CGFloat(Double(seg.startTag) - centerDay) * px
                 let w = CGFloat(seg.days) * px
                 let isActive = focusedDay >= seg.startTag && focusedDay < seg.startTag + seg.days
-                let labelX = min(max(cx, leftX + 26), leftX + w - 26)
 
                 // active highlight pill
                 if isActive {
@@ -578,13 +604,22 @@ struct DiaryTimelineView: View {
                     .fill(.white.opacity(0.12))
                     .frame(width: 1, height: 28)
                     .position(x: leftX, y: 14)
-                // label (sticky within visible segment)
-                Text(seg.label(short: w <= 70))
-                    .font(.mono(12, weight: .medium))
-                    .tracking(1.5)
-                    .foregroundStyle(isActive ? Theme.amber : .white.opacity(0.5))
-                    .fixedSize()
-                    .position(x: labelX.isFinite ? labelX : leftX + w / 2, y: 14)
+                // Label, sticky inside its own month and never outside it.
+                // The clamp now accounts for the label's half-width, so a name
+                // that only just fits stops at the divider instead of reaching
+                // across it.
+                if let label = seg.label(fitting: w) {
+                    let half  = label.width / 2
+                    let lower = leftX + half + 4
+                    let upper = leftX + w - half - 4
+                    let x = lower <= upper ? min(max(cx, lower), upper) : leftX + w / 2
+                    Text(verbatim: label.text)
+                        .font(.mono(12, weight: .medium))
+                        .tracking(1.5)
+                        .foregroundStyle(isActive ? Theme.amber : .white.opacity(0.5))
+                        .fixedSize()
+                        .position(x: x.isFinite ? x : leftX + w / 2, y: 14)
+                }
             }
         }
         .frame(maxWidth: .infinity)
