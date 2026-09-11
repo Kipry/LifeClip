@@ -44,6 +44,39 @@ enum RecordingQuality: String, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - Lens stage
+
+/// One fixed step in the lens picker — what the native Camera app shows as
+/// 0,5 / 1 / 2.
+///
+/// `display` is what the user sees and what the UI compares against;
+/// `deviceFactor` is the `videoZoomFactor` that actually selects that physical
+/// lens on the virtual multi-camera device.
+struct LensStage: Identifiable, Equatable {
+    let display: CGFloat
+    let deviceFactor: CGFloat
+    /// "Ultra Wide", "Wide", "Telephoto" — spoken by VoiceOver, never drawn.
+    let name: LocalizedStringResource
+
+    var id: CGFloat { deviceFactor }
+
+    static func == (a: LensStage, b: LensStage) -> Bool {
+        a.deviceFactor == b.deviceFactor
+    }
+
+    /// Native-camera convention: the selected step carries the ×, the others
+    /// are bare numbers. Half steps keep one decimal, whole ones drop it.
+    func label(isActive: Bool) -> String {
+        let number = display < 1 || display != display.rounded()
+            ? String(format: "%.1f", display)
+            : String(Int(display))
+        let localised = number.replacingOccurrences(
+            of: ".", with: Locale.current.decimalSeparator ?? "."
+        )
+        return isActive ? localised + "×" : localised
+    }
+}
+
 // MARK: - Errors
 
 enum CameraError: LocalizedError {
@@ -113,6 +146,10 @@ final class CameraService: NSObject, ObservableObject {
     @Published var currentZoomFactor: CGFloat = 1.0
     @Published var displayZoomFactor: CGFloat = 1.0
     @Published var exposureBias: Float = 0
+    /// The fixed lens steps this camera actually has. Empty for a single-lens
+    /// camera — the front one, and every phone without a second module — which
+    /// is what tells the UI to leave the lens picker out entirely.
+    @Published var lensStages: [LensStage] = []
 
     // MARK: Private objects
 
@@ -269,6 +306,71 @@ final class CameraService: NSObject, ObservableObject {
         exposureBias = 0
     }
 
+    // MARK: - Lens stages
+
+    /// The fixed steps this device offers, derived from the hardware rather
+    /// than assumed.
+    ///
+    /// A virtual multi-camera reports where each physical lens takes over:
+    /// the first constituent starts at 1.0, every later one at the matching
+    /// entry of `virtualDeviceSwitchOverVideoZoomFactors`. Dividing those by
+    /// where the *wide* lens starts turns them into the numbers people know —
+    /// a triple camera becomes 0,5 / 1 / 2, a device without an ultra-wide
+    /// simply has no step below 1, and one without a telephoto none above it.
+    ///
+    /// Nothing is hardcoded to 0,5 / 1 / 2 on purpose: a phone whose telephoto
+    /// takes over at 5× would otherwise be labelled 2 and lie about itself.
+    private static func lensStages(for device: AVCaptureDevice) -> [LensStage] {
+        let lenses = device.constituentDevices
+        guard lenses.count > 1 else { return [] }
+
+        var starts: [CGFloat] = [1.0]
+        starts += device.virtualDeviceSwitchOverVideoZoomFactors.map { CGFloat(truncating: $0) }
+        guard starts.count >= lenses.count else { return [] }
+
+        guard let wideIndex = lenses.firstIndex(where: { $0.deviceType == .builtInWideAngleCamera })
+        else { return [] }
+        let reference = starts[wideIndex]
+        guard reference > 0 else { return [] }
+
+        // Three at most: more steps belong behind the pinch, not in a bar that
+        // sits over the viewfinder.
+        return lenses.indices.prefix(3).map { i in
+            LensStage(display: starts[i] / reference,
+                      deviceFactor: starts[i],
+                      name: Self.lensName(lenses[i].deviceType))
+        }
+    }
+
+    private static func lensName(_ type: AVCaptureDevice.DeviceType) -> LocalizedStringResource {
+        switch type {
+        case .builtInUltraWideCamera: return "Ultra Wide"
+        case .builtInTelephotoCamera: return "Telephoto"
+        default:                      return "Wide"
+        }
+    }
+
+    /// Moves to a fixed step by zooming the virtual device, not by swapping
+    /// `AVCaptureDevice`.
+    ///
+    /// Swapping the device tears the session down and back up, which is a
+    /// black frame in the middle of the viewfinder. Changing `videoZoomFactor`
+    /// past a switch-over point hands the same session to the other lens, and
+    /// `ramp` makes that a move rather than a jump.
+    func selectLens(_ stage: LensStage) {
+        guard let device = videoDeviceInput?.device else { return }
+        let target = max(device.minAvailableVideoZoomFactor,
+                         min(stage.deviceFactor, device.maxAvailableVideoZoomFactor))
+        try? device.lockForConfiguration()
+        device.cancelVideoZoomRamp()
+        device.ramp(toVideoZoomFactor: target, withRate: 8)
+        device.unlockForConfiguration()
+        // Published immediately: the ramp takes a moment, and the bar should
+        // mark the step the instant it was chosen, not when the optics catch up.
+        currentZoomFactor = target
+        displayZoomFactor = target / displayZoomReference
+    }
+
     // MARK: - Camera Control
 
     /// Puts zoom on the Camera Control, so sliding the button zooms the way it
@@ -314,6 +416,9 @@ final class CameraService: NSObject, ObservableObject {
         let clamped = max(device.minAvailableVideoZoomFactor,
                           min(factor, device.maxAvailableVideoZoomFactor))
         try? device.lockForConfiguration()
+        // A ramp from a lens tap would otherwise keep running underneath the
+        // finger and fight it.
+        device.cancelVideoZoomRamp()
         device.videoZoomFactor = clamped
         device.unlockForConfiguration()
         currentZoomFactor = clamped
@@ -387,6 +492,7 @@ final class CameraService: NSObject, ObservableObject {
     // is where the "1×" lens activates — dividing by it normalises any camera
     // (back triple/dual-wide OR front wide+ultrawide) to the familiar 0.5×/1×/2× scale.
     private func setDefaultZoom(on device: AVCaptureDevice) {
+        lensStages = Self.lensStages(for: device)
         // Front camera: widen the format first, then sit at the crop that looks
         // like the old framing. Order matters — the zoom factor below is
         // meaningless until the format it crops is the one in use.

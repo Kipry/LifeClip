@@ -23,6 +23,9 @@ struct CameraView: View {
     @State private var elapsed: Double = 0
     @State private var timer: Timer?
     @State private var durationLimit = RecordingDuration.standard
+    @State private var expandedControls: CaptureControlBar.Group = .lens
+    /// The lens step the app was last left on, so it opens the way it closed.
+    @AppStorage("lensZoomStage") private var storedLensStage: Double = 1
     @State private var isHoldRecording = false
     @State private var holdStartTask: Task<Void, Never>?
     @State private var holdZoomStart: CGFloat = 1.0
@@ -72,6 +75,7 @@ struct CameraView: View {
             // first use) so it's ready by the time the clip is saved.
             LocationService.shared.prime()
             await setupCamera()
+            restoreLensStage()
         }
         .onDisappear { teardown() }
         .onChange(of: scenePhase) { _, phase in
@@ -277,23 +281,6 @@ struct CameraView: View {
 
             Spacer()
 
-            if camera.isRecording {
-                HStack(spacing: 7) {
-                    Circle()
-                        .fill(Theme.amber)
-                        .frame(width: 8, height: 8)
-                    Text(String(format: "%.1fs", elapsed))
-                        .font(.mono(13, weight: .medium))
-                        .foregroundStyle(.white)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(.black.opacity(0.55), in: Capsule())
-                .transition(.scale.combined(with: .opacity))
-            }
-
-            Spacer()
-
             Button {
                 torchOn.toggle()
                 if camera.cameraPosition == .front {
@@ -320,9 +307,24 @@ struct CameraView: View {
 
     private var bottomBar: some View {
         VStack(spacing: 16) {
-            if !camera.isRecording {
-                DurationPicker(selection: $durationLimit).transition(.opacity)
-            }
+            // Lens and length in one capsule, replacing both the duration pills
+            // that used to sit here and the elapsed pill at the top edge. It
+            // stays mounted while recording — dimmed, not removed — so the row
+            // below it never shifts position mid-clip.
+            CaptureControlBar(
+                stages: camera.lensStages,
+                activeStage: activeLensStage,
+                currentZoom: camera.displayZoomFactor,
+                duration: durationLimit,
+                expanded: $expandedControls,
+                isRecording: camera.isRecording,
+                onSelectLens: { stage in
+                    camera.selectLens(stage)
+                    lastZoom = camera.currentZoomFactor
+                    storedLensStage = Double(stage.display)
+                },
+                onSelectDuration: { durationLimit = $0 }
+            )
 
             // Hands-free lock cue (only while hold-recording).
             if isLocked {
@@ -457,6 +459,29 @@ struct CameraView: View {
             }
     }
 
+    // MARK: - Lens stages
+
+    /// The step the camera is exactly on, or nil.
+    ///
+    /// Nil is a real answer, not a failure: after a pinch the camera usually
+    /// sits between two steps, and marking the nearest one would claim a
+    /// precision the picture doesn't have.
+    private var activeLensStage: LensStage? {
+        camera.lensStages.first { abs($0.display - camera.displayZoomFactor) < 0.02 }
+    }
+
+    /// Opens on the lens the app was last closed on.
+    ///
+    /// Only ever snaps to a step that exists on *this* camera, so a phone with
+    /// no telephoto can't inherit a 3× from a previous device or a restore.
+    private func restoreLensStage() {
+        guard let stage = camera.lensStages.first(where: {
+            abs($0.display - CGFloat(storedLensStage)) < 0.01
+        }) else { return }
+        camera.selectLens(stage)
+        lastZoom = camera.currentZoomFactor
+    }
+
     // MARK: - Actions
 
     private func handleCameraFlip() {
@@ -473,6 +498,10 @@ struct CameraView: View {
         } else {
             Task {
                 try? await camera.switchCamera()
+                // The other camera has its own steps — a stale open group could
+                // be showing lenses that no longer exist.
+                withAnimation(.easeInOut(duration: 0.2)) { expandedControls = .lens }
+                lastZoom = camera.currentZoomFactor
                 if isHoldRecording { holdZoomStart = camera.currentZoomFactor }
             }
         }

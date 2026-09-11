@@ -701,6 +701,83 @@
         }
       }
     },
+    "Lens" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Objektiv"
+          }
+        }
+      }
+    },
+    "Recording duration" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufnahmedauer"
+          }
+        }
+      }
+    },
+    "Recording duration %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufnahmedauer %@"
+          }
+        }
+      }
+    },
+    "%@, %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, %@"
+          }
+        }
+      }
+    },
+    "Ultra Wide" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ultraweitwinkel"
+          }
+        }
+      }
+    },
+    "Wide" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weitwinkel"
+          }
+        }
+      }
+    },
+    "Telephoto" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tele"
+          }
+        }
+      }
+    },
     "Copy to Project" : {
       "extractionState" : "manual",
       "localizations" : {
