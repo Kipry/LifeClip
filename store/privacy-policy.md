@@ -1,6 +1,6 @@
 # Datenschutzerklärung — keep.
 
-**Letzte Aktualisierung:** 28. Juli 2026
+**Letzte Aktualisierung:** 11. September 2026
 **Kontakt:** keep.dailymoments@gmail.com
 
 > Diese Erklärung ist als hostbares HTML unter `docs/privacy.html` verfügbar.
@@ -78,7 +78,7 @@ Fragen zum Datenschutz: **keep.dailymoments@gmail.com**
 
 # Privacy Policy — keep. (English)
 
-**Last updated:** 28 July 2026
+**Last updated:** 11 September 2026
 **Contact:** keep.dailymoments@gmail.com
 
 ## Summary

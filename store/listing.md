@@ -71,16 +71,26 @@ tagebuch,video,journal,clip,sekunde,rückblick,erinnerung,vlog,widget,sperrbilds
 Ein Tap auf dem Sperrbildschirm – ohne Entsperren – und der Moment ist festgehalten. Kein Umweg über die Kamera-App, kein Zögern.
 ```
 
-**Neue Funktionen / What's New** (v1.0)
+**Neue Funktionen / What's New** (v1.1)
 ```
-Willkommen bei keep. – der ersten Version.
+Aufnehmen, ohne das Handy zu entsperren – und eine Kamera, die mehr kann.
 
-• Aufnehmen direkt vom Sperrbildschirm, ohne zu entsperren
-• Projekte, Filmstreifen und Ein-Tap-Export
-• Tagebuch-Zeitachse, Orte-Karte, Chronik und Streak
-• Fotos importieren
+• Aufnahme direkt vom Sperrbildschirm, aus dem Kontrollzentrum oder über die
+  Action-Taste. Einmal einrichten: Sperrbildschirm anpassen → Steuerelement →
+  „keep. · Aufnehmen". An deine Projekte kommst du weiterhin nur entsperrt.
+• Feste Zoomstufen (0,5 · 1 · 2) und die Aufnahmedauer jetzt in einer Leiste
+  über dem Auslöser.
+• Aufnahme in 4K ist neuer Standard.
+• Halten auch über die Lautstärketasten und die Kamerataste – für Clips, die
+  so lang werden, wie du willst. Über die Kamerataste lässt sich auch zoomen.
+• Die Frontkamera geht weiter raus als bisher.
+• Ganze Projekte duplizieren: auf eine Kachel gedrückt halten → „Duplizieren".
+• Importierte Fotos sind so lang wie deine eingestellte Cliplänge.
+• Die Karte unter „Orte" sieht wärmer aus.
 
-Wir freuen uns über dein Feedback.
+Behoben: verzerrte Fotos in der Film-Vorschau, ein grauer Balken im Tagebuch,
+Projekte, die erst nach einem Neustart auftauchten, überlappende Monatsnamen
+und plötzlich lautere Musik beim Aufnehmen.
 ```
 
 ---
@@ -138,16 +148,26 @@ journal,video,diary,clip,seconds,memories,vlog,widget,lockscreen,map,places,capt
 One tap from your Lock Screen — no unlocking — and the moment is saved. No detour through the camera app.
 ```
 
-**What's New** (v1.0)
+**What's New** (v1.1)
 ```
-Welcome to keep. — our very first release.
+Record without unlocking your phone — and a camera that does more.
 
-• Record straight from the Lock Screen, without unlocking
-• Projects, filmstrip and one-tap export
-• Journal timeline, places map, chronicle and streak
-• Import photos
+• Record from the Lock Screen, Control Centre or the Action button. Set it up
+  once: customise the Lock Screen → control → "keep. · Record". Your projects
+  still need an unlock.
+• Fixed zoom steps (0.5 · 1 · 2) and the clip length now share one bar above
+  the shutter.
+• Recording in 4K is the new default.
+• Hold the volume buttons or Camera Control to record for as long as you like,
+  and slide Camera Control to zoom.
+• The front camera now goes wider than it did.
+• Duplicate a whole project: press and hold a card then choose "Duplicate".
+• Imported photos take your chosen clip length.
+• The places map looks warmer.
 
-We'd love your feedback.
+Fixed: distorted photos in the film preview, a grey band in the journal,
+projects that only appeared after a relaunch, overlapping month names, and
+music jumping in volume while recording.
 ```
 
 ---
