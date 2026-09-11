@@ -281,10 +281,15 @@ struct CircleIconButton: View {
 // MARK: - Scroll edge fade
 
 extension View {
-    /// Softly dissolves scrolling content at the top edge so it fades out
-    /// underneath a pinned header instead of hitting a hard cut-off line.
+    /// Softly dissolves scrolling content at its edges, so it fades out under
+    /// the chrome above and below instead of hitting a hard cut-off line.
     /// Apply to the ScrollView itself; the fade stays fixed to its frame.
-    func topEdgeFade(height: CGFloat = 32) -> some View {
+    ///
+    /// `bottom` defaults to nothing because not every list has something
+    /// sitting over its lower edge. Where one does — the project grid runs
+    /// under the tab row — a hard line there looks like the content was
+    /// trimmed rather than continuing past the frame.
+    func scrollEdgeFade(top: CGFloat = 32, bottom: CGFloat = 0) -> some View {
         mask(
             VStack(spacing: 0) {
                 LinearGradient(
@@ -294,8 +299,16 @@ extension View {
                     ],
                     startPoint: .top, endPoint: .bottom
                 )
-                .frame(height: height)
+                .frame(height: top)
                 Color.black
+                LinearGradient(
+                    stops: [
+                        .init(color: .black, location: 0),
+                        .init(color: .clear, location: 1)
+                    ],
+                    startPoint: .top, endPoint: .bottom
+                )
+                .frame(height: bottom)
             }
         )
     }

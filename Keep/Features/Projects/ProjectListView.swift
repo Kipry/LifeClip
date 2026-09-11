@@ -94,7 +94,7 @@ struct ProjectListView: View {
                         }
                         .padding(.top, 12)
                     }
-                    .topEdgeFade()
+                    .scrollEdgeFade(bottom: 72)
                 }
             }
         }

@@ -227,9 +227,10 @@ private struct CreateProjectButton: View {
             ZStack {
                 Circle().fill(Theme.amber)
                 Plus()
-                    .stroke(Theme.ink, style: StrokeStyle(lineWidth: 2.6, lineCap: .round))
+                    .stroke(Theme.ink, style: StrokeStyle(lineWidth: 3.6, lineCap: .round))
                     .frame(width: size * 0.4, height: size * 0.4)
             }
+            .frame(width: size, height: size)
         }
         .buttonStyle(PressStyle())
         .contentShape(Circle())
@@ -245,12 +246,11 @@ private struct CreateProjectButton: View {
 
         func makeBody(configuration: Configuration) -> some View {
             let pressed = configuration.isPressed
+            // No shadow. An amber glow was the design, but the button's width
+            // is animated, and animating a width means clipping to it — which
+            // cut the glow into a square with visible corners. A flat disc in a
+            // flat row is also simply cleaner.
             return configuration.label
-                // Amber rather than black: a hard shadow under a bright disc
-                // reads as a sticker laid on the screen. This one is the
-                // button's own colour spilling out, which is what makes it sit
-                // in the row instead of on top of it.
-                .shadow(color: Theme.amber.opacity(pressed ? 0.18 : 0.30), radius: 16, y: 6)
                 // Reduce Motion still gets an answer to the press, just a
                 // brightening instead of a spring.
                 .brightness(reduceMotion && pressed ? 0.08 : 0)
@@ -294,8 +294,13 @@ private struct AppTabBar: View {
             // Width, not insertion: growing from nothing pushes the pill open
             // and pulls it shut again, which is the same movement in both
             // directions. An inserted view would pop.
-            CreateProjectButton(size: barHeight, action: onCreate)
-                .frame(width: showsCreate ? barHeight : 0, height: barHeight)
+            // Smaller than the pill it sits next to: matching its height made
+            // the button read as the heaviest thing on the screen. The row
+            // keeps the pill's height, so the disc simply centres in it and
+            // nothing below shifts.
+            let createSize = barHeight * 0.8
+            CreateProjectButton(size: createSize, action: onCreate)
+                .frame(width: showsCreate ? createSize : 0, height: barHeight)
                 .opacity(showsCreate ? 1 : 0)
                 .clipped()
                 .padding(.leading, showsCreate ? 8 : 0)

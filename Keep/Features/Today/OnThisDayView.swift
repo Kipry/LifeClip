@@ -459,7 +459,7 @@ private struct StreakDetailView: View {
                     }
                     // Months dissolve softly under the pinned stats card
                     // instead of being cut off at a hard edge.
-                    .topEdgeFade()
+                    .scrollEdgeFade(bottom: 72)
                     // Land on the current month; scrolling up reveals the past.
                     .onAppear {
                         if let newest = months.last {
