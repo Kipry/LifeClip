@@ -135,6 +135,13 @@ final class CameraService: NSObject, ObservableObject {
     /// underneath it.
     private var displayZoomReference: CGFloat = 1
 
+    /// The Camera Control's zoom slider, held so it can be swapped when the
+    /// camera flips — a control is bound to the device it was created with.
+    private var zoomControl: AVCaptureControl?
+    /// The system calls controls delegate methods here; it must not be the main
+    /// queue, which is where the session's own configuration work runs.
+    private let controlsQueue = DispatchQueue(label: "keep.capture.controls")
+
     private(set) var session: AVCaptureSession?
     private var videoDeviceInput: AVCaptureDeviceInput?
     private var audioDeviceInput: AVCaptureDeviceInput?
@@ -193,6 +200,8 @@ final class CameraService: NSObject, ObservableObject {
         s.commitConfiguration()
         session = s
 
+        installZoomControl(on: s, device: videoInput.device)
+
         await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in
             DispatchQueue.global(qos: .userInitiated).async { s.startRunning(); c.resume() }
         }
@@ -250,12 +259,52 @@ final class CameraService: NSObject, ObservableObject {
         videoDeviceInput = newInput
         cameraPosition = newPosition
         if let out = movieOutput { enableStabilization(on: out) }
+        // The old slider still points at the camera that was just removed.
+        installZoomControl(on: s, device: newInput.device)
         setDefaultZoom(on: newInput.device)
         // New device starts at 0 EV bias; keep published state in sync.
         try? newInput.device.lockForConfiguration()
         newInput.device.setExposureTargetBias(0, completionHandler: nil)
         newInput.device.unlockForConfiguration()
         exposureBias = 0
+    }
+
+    // MARK: - Camera Control
+
+    /// Puts zoom on the Camera Control, so sliding the button zooms the way it
+    /// does in the system Camera app.
+    ///
+    /// `AVCaptureSystemZoomSlider` is the system's own control: it takes its
+    /// range from the active format's `systemRecommendedVideoZoomRange` and
+    /// follows the device when that format changes. Its action closure is what
+    /// keeps the on-screen zoom readout honest — without it the hardware and
+    /// the UI would each believe a different number.
+    ///
+    /// A delegate is not optional here. Apple: "For a control to become active,
+    /// you must set a AVCaptureSessionControlsDelegate on the session." Adding
+    /// the slider without one produces a control that exists and does nothing.
+    ///
+    /// Silently does nothing on hardware without a Camera Control, which is
+    /// every phone before the 16.
+    private func installZoomControl(on session: AVCaptureSession, device: AVCaptureDevice) {
+        guard session.supportsControls else { return }
+        session.setControlsDelegate(self, queue: controlsQueue)
+
+        if let existing = zoomControl {
+            session.removeControl(existing)
+            zoomControl = nil
+        }
+        // The action is declared `@MainActor @Sendable (CGFloat) -> Void`, so it
+        // already arrives on the main actor — no hop, and the readout updates in
+        // the same frame the hardware moved.
+        let slider = AVCaptureSystemZoomSlider(device: device) { [weak self] factor in
+            guard let self else { return }
+            self.currentZoomFactor = factor
+            self.displayZoomFactor = factor / self.displayZoomReference
+        }
+        guard session.canAddControl(slider) else { return }
+        session.addControl(slider)
+        zoomControl = slider
     }
 
     // MARK: - Zoom (auto-switches lenses via virtual device)
@@ -516,4 +565,22 @@ extension CameraService: AVCaptureFileOutputRecordingDelegate {
             self.recordingContinuation = nil
         }
     }
+}
+
+// MARK: - Camera Control lifecycle
+
+/// Required for the Camera Control's zoom slider to be active at all — the
+/// session ignores controls without a delegate. Nothing here needs to react:
+/// the slider drives the device directly and reports back through its own
+/// action closure. These exist so the control works, and as the place to hook
+/// in if the UI should ever step out of the way while the control is on screen.
+///
+/// No availability guard: the whole app targets iOS 18, so annotating the
+/// conformance would only make it conditional for a case that can't occur —
+/// and then `setControlsDelegate(self,…)` wouldn't compile.
+extension CameraService: AVCaptureSessionControlsDelegate {
+    nonisolated func sessionControlsDidBecomeActive(_ session: AVCaptureSession) {}
+    nonisolated func sessionControlsWillEnterFullscreenAppearance(_ session: AVCaptureSession) {}
+    nonisolated func sessionControlsWillExitFullscreenAppearance(_ session: AVCaptureSession) {}
+    nonisolated func sessionControlsDidBecomeInactive(_ session: AVCaptureSession) {}
 }
