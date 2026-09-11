@@ -281,6 +281,27 @@ struct CameraView: View {
 
             Spacer()
 
+            // Back after being removed with the old duration pills: it is the
+            // only thing on screen that says a hold-recording is running. The
+            // shutter ring can't — on a variable clip there is no end to fill
+            // towards, so it stays empty the whole time.
+            if camera.isRecording {
+                HStack(spacing: 7) {
+                    Circle()
+                        .fill(Theme.amber)
+                        .frame(width: 8, height: 8)
+                    Text(String(format: "%.1fs", elapsed))
+                        .font(.mono(13, weight: .medium))
+                        .foregroundStyle(.white)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(.black.opacity(0.55), in: Capsule())
+                .transition(.scale.combined(with: .opacity))
+            }
+
+            Spacer()
+
             Button {
                 torchOn.toggle()
                 if camera.cameraPosition == .front {
@@ -307,10 +328,9 @@ struct CameraView: View {
 
     private var bottomBar: some View {
         VStack(spacing: 16) {
-            // Lens and length in one capsule, replacing both the duration pills
-            // that used to sit here and the elapsed pill at the top edge. It
-            // stays mounted while recording — dimmed, not removed — so the row
-            // below it never shifts position mid-clip.
+            // Lens and length in one capsule, replacing the duration pills that
+            // used to sit here. It stays mounted while recording — dimmed, not
+            // removed — so the row below it never shifts position mid-clip.
             CaptureControlBar(
                 stages: camera.lensStages,
                 activeStage: activeLensStage,

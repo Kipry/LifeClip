@@ -308,38 +308,52 @@ final class CameraService: NSObject, ObservableObject {
 
     // MARK: - Lens stages
 
-    /// The fixed steps this device offers, derived from the hardware rather
-    /// than assumed.
+    /// The fixed steps this device offers: the ultra-wide if there is one, the
+    /// main lens, and 2×.
     ///
-    /// A virtual multi-camera reports where each physical lens takes over:
-    /// the first constituent starts at 1.0, every later one at the matching
-    /// entry of `virtualDeviceSwitchOverVideoZoomFactors`. Dividing those by
-    /// where the *wide* lens starts turns them into the numbers people know —
-    /// a triple camera becomes 0,5 / 1 / 2, a device without an ultra-wide
-    /// simply has no step below 1, and one without a telephoto none above it.
+    /// The first two come from the hardware — a virtual multi-camera reports
+    /// where each lens takes over, and dividing those by where the *wide* lens
+    /// starts turns them into the numbers people know. A phone without an
+    /// ultra-wide simply has no step below 1.
     ///
-    /// Nothing is hardcoded to 0,5 / 1 / 2 on purpose: a phone whose telephoto
-    /// takes over at 5× would otherwise be labelled 2 and lie about itself.
+    /// The top step is pinned to 2× rather than read from the telephoto, which
+    /// is what the system Camera app does and for the same reason: on a phone
+    /// whose tele starts at 5×, a step that jumps straight there is too far to
+    /// be the everyday "closer". Which lens actually serves 2× is the device's
+    /// business — the telephoto where one reaches it, a crop of the main sensor
+    /// otherwise — and only affects what VoiceOver calls it.
     private static func lensStages(for device: AVCaptureDevice) -> [LensStage] {
         let lenses = device.constituentDevices
         guard lenses.count > 1 else { return [] }
 
         var starts: [CGFloat] = [1.0]
         starts += device.virtualDeviceSwitchOverVideoZoomFactors.map { CGFloat(truncating: $0) }
-        guard starts.count >= lenses.count else { return [] }
-
-        guard let wideIndex = lenses.firstIndex(where: { $0.deviceType == .builtInWideAngleCamera })
+        guard starts.count >= lenses.count,
+              let wideIndex = lenses.firstIndex(where: { $0.deviceType == .builtInWideAngleCamera }),
+              starts[wideIndex] > 0
         else { return [] }
         let reference = starts[wideIndex]
-        guard reference > 0 else { return [] }
 
-        // Three at most: more steps belong behind the pinch, not in a bar that
-        // sits over the viewfinder.
-        return lenses.indices.prefix(3).map { i in
-            LensStage(display: starts[i] / reference,
-                      deviceFactor: starts[i],
-                      name: Self.lensName(lenses[i].deviceType))
+        var result: [LensStage] = []
+        if wideIndex > 0 {
+            result.append(LensStage(display: starts[0] / reference,
+                                    deviceFactor: starts[0],
+                                    name: Self.lensName(lenses[0].deviceType)))
         }
+        result.append(LensStage(display: 1,
+                                deviceFactor: reference,
+                                name: Self.lensName(.builtInWideAngleCamera)))
+
+        let doubled = reference * 2
+        if doubled <= device.maxAvailableVideoZoomFactor {
+            let serving = starts.lastIndex { $0 <= doubled + 0.001 } ?? wideIndex
+            let type = lenses.indices.contains(serving)
+                ? lenses[serving].deviceType
+                : AVCaptureDevice.DeviceType.builtInWideAngleCamera
+            result.append(LensStage(display: 2, deviceFactor: doubled,
+                                    name: Self.lensName(type)))
+        }
+        return result
     }
 
     private static func lensName(_ type: AVCaptureDevice.DeviceType) -> LocalizedStringResource {
