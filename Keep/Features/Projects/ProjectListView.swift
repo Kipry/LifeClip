@@ -12,7 +12,9 @@ struct ProjectListView: View {
     )
     private var projects: [Project]
 
-    @State private var isCreatingProject = false
+    /// Raised by the button in the tab row, which lives one level up now that
+    /// it is docked to the tab pill rather than floating over this page.
+    @Binding var isCreatingProject: Bool
     @State private var newProjectName = ""
     @State private var projectToDelete: Project?
     @State private var projectToRename: Project?
@@ -22,7 +24,7 @@ struct ProjectListView: View {
     @State private var recordOnNextOpen = false
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
+        ZStack {
             Theme.background.ignoresSafeArea()
 
             // Header stays pinned; only the project grid scrolls underneath it,
@@ -95,19 +97,6 @@ struct ProjectListView: View {
                     .topEdgeFade()
                 }
             }
-
-            // ── Amber FAB ────────────────────────────────────────────────
-            Button { isCreatingProject = true } label: {
-                Image(systemName: "plus")
-                    .font(.system(size: 26, weight: .bold))
-                    .foregroundStyle(Theme.ink)
-                    .frame(width: 58, height: 58)
-                    .background(Theme.amber, in: Circle())
-                    .shadow(color: Theme.ink.opacity(0.55), radius: 0, x: 2, y: 3)
-            }
-            .accessibilityLabel("New Project")
-            .padding(.trailing, 20)
-            .padding(.bottom, 36)
         }
         .preferredColorScheme(.dark)
         // ── Project detail — full-screen so it owns the entire layout ──

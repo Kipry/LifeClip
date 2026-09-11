@@ -14,6 +14,9 @@ struct ContentView: View {
     @Environment(AppDeepLink.self) private var deepLink
     @State private var selectedTab: AppTab = .projects
     @State private var dragOffset: CGFloat = 0
+    /// Owned here, not in the library, because the button that raises it now
+    /// sits in the tab row — which belongs to this view.
+    @State private var isCreatingProject = false
 
     private let order: [AppTab] = [.projects, .timeline, .today]
 
@@ -54,7 +57,7 @@ struct ContentView: View {
                 let w = geo.size.width
                 ZStack {
                     HStack(spacing: 0) {
-                        ProjectListView().frame(width: w)
+                        ProjectListView(isCreatingProject: $isCreatingProject).frame(width: w)
                         DiaryTimelineView(isActive: selectedTab == .timeline).frame(width: w)
                         OnThisDayView(isActive: selectedTab == .today).frame(width: w)
                     }
@@ -73,7 +76,13 @@ struct ContentView: View {
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            AppTabBar(selectedTab: selectedTab, onSelect: switchTab)
+            AppTabBar(
+                selectedTab: selectedTab,
+                onSelect: switchTab,
+                // The button belongs to the library, so it only exists there.
+                showsCreate: selectedTab == .projects,
+                onCreate: { isCreatingProject = true }
+            )
         }
         .onboardingGate()
         .task {
@@ -188,11 +197,117 @@ struct ContentView: View {
 
 // MARK: - Tab bar
 
+/// The tab pill and, on the library, the new-project button beside it.
+///
+/// The button used to float above this row as a second amber circle. Two round
+/// orange things stacked on top of each other, neither explaining the other —
+/// so it moved into the row: same height, same radius, same baseline, one
+/// object instead of two.
+///
+/// Three tabs leave enough room for the narrower pill. A fourth would not: at
+/// that point either the labels go or the button moves up into the header.
+/// Deliberately not built for in advance.
+// MARK: - Create project button
+
+/// The new-project action, sized to sit flush beside the tab pill.
+///
+/// Drawn rather than taken from SF Symbols: the design calls for a 2.6pt
+/// stroke at 40% of the button's width, and `Image(systemName: "plus")` only
+/// approaches that through a font weight — close on one size, wrong on the
+/// next. A path is the same shape whatever the button measures.
+private struct CreateProjectButton: View {
+    let size: CGFloat
+    let action: () -> Void
+
+    var body: some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            action()
+        } label: {
+            ZStack {
+                Circle().fill(Theme.amber)
+                Plus()
+                    .stroke(Theme.ink, style: StrokeStyle(lineWidth: 2.6, lineCap: .round))
+                    .frame(width: size * 0.4, height: size * 0.4)
+            }
+        }
+        .buttonStyle(PressStyle())
+        .contentShape(Circle())
+        .accessibilityLabel("New Project")
+        .accessibilityAddTraits(.isButton)
+    }
+
+    /// The press state comes from the button itself rather than a gesture laid
+    /// over it — a second gesture on top of a Button competes with the tap it
+    /// is supposed to be decorating.
+    private struct PressStyle: ButtonStyle {
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+        func makeBody(configuration: Configuration) -> some View {
+            let pressed = configuration.isPressed
+            return configuration.label
+                // Amber rather than black: a hard shadow under a bright disc
+                // reads as a sticker laid on the screen. This one is the
+                // button's own colour spilling out, which is what makes it sit
+                // in the row instead of on top of it.
+                .shadow(color: Theme.amber.opacity(pressed ? 0.18 : 0.30), radius: 16, y: 6)
+                // Reduce Motion still gets an answer to the press, just a
+                // brightening instead of a spring.
+                .brightness(reduceMotion && pressed ? 0.08 : 0)
+                .scaleEffect(reduceMotion ? 1 : (pressed ? 0.94 : 1))
+                .animation(.spring(response: 0.26, dampingFraction: 0.7), value: pressed)
+        }
+    }
+
+    /// Drawn rather than taken from SF Symbols: the design calls for a 2.6pt
+    /// stroke at 40% of the button's width, and `Image(systemName: "plus")`
+    /// only approaches that through a font weight — close at one size, wrong
+    /// at the next. A path is the same shape whatever the button measures.
+    private struct Plus: Shape {
+        func path(in rect: CGRect) -> Path {
+            var p = Path()
+            p.move(to: CGPoint(x: rect.midX, y: rect.minY))
+            p.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
+            p.move(to: CGPoint(x: rect.minX, y: rect.midY))
+            p.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
+            return p
+        }
+    }
+}
+
 private struct AppTabBar: View {
     let selectedTab: AppTab
     let onSelect: (AppTab) -> Void
+    let showsCreate: Bool
+    let onCreate: () -> Void
+
+    /// Measured from the pill rather than hardcoded, so the button stays
+    /// exactly as tall however the labels grow under Dynamic Type. Seeded with
+    /// the value it settles on, so the first frame is already right.
+    @State private var barHeight: CGFloat = 66
+
+    private var motion: Animation { .spring(response: 0.34, dampingFraction: 0.85) }
 
     var body: some View {
+        HStack(spacing: 0) {
+            tabPill
+            // Width, not insertion: growing from nothing pushes the pill open
+            // and pulls it shut again, which is the same movement in both
+            // directions. An inserted view would pop.
+            CreateProjectButton(size: barHeight, action: onCreate)
+                .frame(width: showsCreate ? barHeight : 0, height: barHeight)
+                .opacity(showsCreate ? 1 : 0)
+                .clipped()
+                .padding(.leading, showsCreate ? 8 : 0)
+                .allowsHitTesting(showsCreate)
+        }
+        .animation(motion, value: showsCreate)
+        .padding(.horizontal, 40)
+        .padding(.bottom, 20)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var tabPill: some View {
         HStack(spacing: 0) {
             tabItem(.projects, icon: "square.grid.2x2",      label: "Projects")
             tabItem(.timeline, icon: "calendar.day.timeline.left", fillIcon: "calendar.day.timeline.left", label: "Diary")
@@ -205,9 +320,7 @@ private struct AppTabBar: View {
                 .fill(Theme.cardSurface.opacity(0.95))
                 .overlay(Capsule().stroke(.white.opacity(0.08), lineWidth: 1))
         )
-        .padding(.horizontal, 40)
-        .padding(.bottom, 20)
-        .frame(maxWidth: .infinity)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { barHeight = $0 }
     }
 
     // LocalizedStringKey, not String: Text(_: String) is the *verbatim*
@@ -223,11 +336,15 @@ private struct AppTabBar: View {
             VStack(spacing: 4) {
                 Image(systemName: isActive ? activeIcon : icon)
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(isActive ? Theme.ink : .white.opacity(0.4))
+                    // Amber at 16%, with the icon carrying the colour instead
+                    // of sitting on it. Full saturation appears once per screen,
+                    // and down here that is now the create button — an active
+                    // tab competing with it would make neither read as primary.
+                    .foregroundStyle(isActive ? Theme.amber : .white.opacity(0.4))
                     .frame(width: 52, height: 30)
                     .background(
                         RoundedRectangle(cornerRadius: 9)
-                            .fill(isActive ? Theme.amber : .clear)
+                            .fill(isActive ? Theme.amber.opacity(0.16) : .clear)
                     )
                 Text(label)
                     .font(.system(size: 10, weight: .medium))
