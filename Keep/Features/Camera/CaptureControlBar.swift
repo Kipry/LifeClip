@@ -77,7 +77,12 @@ struct CaptureControlBar: View {
     // MARK: Lens group
 
     private var lensGroup: some View {
-        HStack(spacing: 0) {
+        // Which button leads the row *as drawn* — not which is first in the
+        // array. Collapsed onto anything but the first step, indexing by array
+        // position gave the one visible button a leading gap with nothing on
+        // the other side of it, and the label sat off-centre in the capsule.
+        let leading = expanded == .lens ? 0 : (stages.firstIndex { $0 == collapsedStage } ?? 0)
+        return HStack(spacing: 0) {
             ForEach(Array(stages.enumerated()), id: \.element.id) { index, stage in
                 let isActive = activeStage == stage
                 // Collapsed, the group still shows one step — the active one,
@@ -90,7 +95,7 @@ struct CaptureControlBar: View {
                     isActive: isActive,
                     showsBackdrop: isActive,
                     isVisible: isVisible,
-                    isFirst: index == 0,
+                    isFirst: index == leading,
                     index: index
                 ) {
                     if expanded == .lens {
@@ -121,7 +126,13 @@ struct CaptureControlBar: View {
     // MARK: Duration group
 
     private var durationGroup: some View {
-        HStack(spacing: 0) {
+        // Same reason as above, and the one people actually see: with no lens
+        // picker — the front camera — the capsule is nothing but this group, so
+        // a stray 5pt on the left is the whole bar looking crooked.
+        let leading = expanded == .duration
+            ? 0
+            : (RecordingDuration.options.firstIndex { abs($0 - duration) < 0.001 } ?? 0)
+        return HStack(spacing: 0) {
             ForEach(Array(RecordingDuration.options.enumerated()), id: \.element) { index, option in
                 let isActive = abs(option - duration) < 0.001
                 let isVisible = expanded == .duration || isActive
@@ -133,7 +144,7 @@ struct CaptureControlBar: View {
                     // selected pill there would claim a choice is open.
                     showsBackdrop: isActive && expanded == .duration,
                     isVisible: isVisible,
-                    isFirst: index == 0,
+                    isFirst: index == leading,
                     index: index
                 ) {
                     if expanded == .duration {
