@@ -180,7 +180,8 @@ struct LockedCaptureView: View {
         // just as importantly, tells the system this extension is an active
         // camera experience. Without an AVCaptureEventInteraction the system
         // suspends a locked capture extension after a few idle seconds.
-        .background(CaptureEventCatcher { handleRecordTap() })
+        .background(CaptureEventCatcher(onPress: { handlePressDown() },
+                                        onRelease: { handleRelease() }))
         // Nothing may come before the camera here. Apple's own wording: a
         // capture extension "terminates shortly after launch if it doesn't
         // have an active camera view [...] or if access to the camera hasn't
@@ -711,17 +712,38 @@ struct LockedCaptureView: View {
 /// capture extension with no `AVCaptureEventInteraction` as idle and suspends
 /// it within seconds, which would kill the preview mid-aim.
 private struct CaptureEventCatcher: UIViewRepresentable {
-    let action: () -> Void
+    let onPress: () -> Void
+    let onRelease: () -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(onPress: onPress, onRelease: onRelease) }
 
     func makeUIView(context: Context) -> UIView {
         let view = UIView()
+        let coordinator = context.coordinator
         let interaction = AVCaptureEventInteraction { event in
-            guard event.phase == .began else { return }
-            action()
+            switch event.phase {
+            case .began: coordinator.onPress()
+            // Cancelled counts as released: an interrupted hold must stop
+            // recording, not keep running.
+            case .ended, .cancelled: coordinator.onRelease()
+            @unknown default: break
+            }
         }
         view.addInteraction(interaction)
         return view
     }
 
-    func updateUIView(_ uiView: UIView, context: Context) {}
+    func updateUIView(_ uiView: UIView, context: Context) {
+        context.coordinator.onPress = onPress
+        context.coordinator.onRelease = onRelease
+    }
+
+    final class Coordinator {
+        var onPress: () -> Void
+        var onRelease: () -> Void
+        init(onPress: @escaping () -> Void, onRelease: @escaping () -> Void) {
+            self.onPress = onPress
+            self.onRelease = onRelease
+        }
+    }
 }

@@ -126,6 +126,15 @@ final class CameraService: NSObject, ObservableObject {
     /// and that the app can pick up from after unlocking.
     var outputDirectory: URL?
 
+    /// The `videoZoomFactor` that reads as "1×" to the user.
+    ///
+    /// On the back camera that is the wide lens's switch-over point, so pinching
+    /// below 1× reaches the ultra-wide. On the front camera it is the crop that
+    /// reproduces iOS's default framing inside the wider format selected below —
+    /// same purpose, same effect: 1× is where it always was, and there is room
+    /// underneath it.
+    private var displayZoomReference: CGFloat = 1
+
     private(set) var session: AVCaptureSession?
     private var videoDeviceInput: AVCaptureDeviceInput?
     private var audioDeviceInput: AVCaptureDeviceInput?
@@ -259,7 +268,7 @@ final class CameraService: NSObject, ObservableObject {
         device.videoZoomFactor = clamped
         device.unlockForConfiguration()
         currentZoomFactor = clamped
-        displayZoomFactor = Self.computeDisplayZoom(clamped, device: device)
+        displayZoomFactor = clamped / displayZoomReference
     }
 
     // MARK: - Focus / Torch
@@ -329,12 +338,28 @@ final class CameraService: NSObject, ObservableObject {
     // is where the "1×" lens activates — dividing by it normalises any camera
     // (back triple/dual-wide OR front wide+ultrawide) to the familiar 0.5×/1×/2× scale.
     private func setDefaultZoom(on device: AVCaptureDevice) {
+        // Front camera: widen the format first, then sit at the crop that looks
+        // like the old framing. Order matters — the zoom factor below is
+        // meaningless until the format it crops is the one in use.
+        if device.position == .front, let reference = widenFrontFormat(on: device) {
+            displayZoomReference = reference
+            let factor = min(reference, device.maxAvailableVideoZoomFactor)
+            try? device.lockForConfiguration()
+            device.videoZoomFactor = factor
+            device.unlockForConfiguration()
+            currentZoomFactor = factor
+            displayZoomFactor = factor / reference
+            return
+        }
+
         guard let wideStart = device.virtualDeviceSwitchOverVideoZoomFactors.first else {
+            displayZoomReference = 1
             currentZoomFactor = device.videoZoomFactor
-            displayZoomFactor = Self.computeDisplayZoom(device.videoZoomFactor, device: device)
+            displayZoomFactor = device.videoZoomFactor
             return
         }
         let factor = CGFloat(truncating: wideStart)
+        displayZoomReference = factor
         try? device.lockForConfiguration()
         device.videoZoomFactor = factor
         device.unlockForConfiguration()
@@ -342,11 +367,51 @@ final class CameraService: NSObject, ObservableObject {
         displayZoomFactor = 1.0
     }
 
-    private static func computeDisplayZoom(_ factor: CGFloat, device: AVCaptureDevice) -> CGFloat {
-        if let first = device.virtualDeviceSwitchOverVideoZoomFactors.first {
-            return factor / CGFloat(truncating: first)
+    /// Puts the front camera on the widest format it has, and reports the crop
+    /// factor that reproduces the framing it had before.
+    ///
+    /// The front camera is a single lens: `minAvailableVideoZoomFactor` is 1.0
+    /// and there is nothing to zoom out *into*. Its full field of view is only
+    /// reachable by choosing a different **format** — and the one iOS picks for
+    /// a session preset is cropped, which is why the widest step here was never
+    /// as wide as the system Camera app's.
+    ///
+    /// Only formats with the same dimensions are considered, so the recording
+    /// resolution is exactly what the preset would have given. Setting
+    /// `activeFormat` does switch the session to input priority, which is why
+    /// that guarantee has to come from the filter rather than from the preset.
+    ///
+    /// Returns nil when nothing wider exists — then the old behaviour stands.
+    private func widenFrontFormat(on device: AVCaptureDevice) -> CGFloat? {
+        let current = device.activeFormat
+        let size = CMVideoFormatDescriptionGetDimensions(current.formatDescription)
+        let before = current.videoFieldOfView
+        guard before > 0 else { return nil }
+
+        let candidates = device.formats.filter { format in
+            let d = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+            guard d.width == size.width, d.height == size.height else { return false }
+            // A wider frame isn't worth a slideshow: keep 30 fps available.
+            return format.videoSupportedFrameRateRanges.contains { $0.maxFrameRate >= 30 }
         }
-        return factor
+        guard let widest = candidates.max(by: { $0.videoFieldOfView < $1.videoFieldOfView }),
+              widest.videoFieldOfView > before + 0.5 else { return nil }
+
+        do {
+            try device.lockForConfiguration()
+            device.activeFormat = widest
+            device.unlockForConfiguration()
+        } catch {
+            return nil
+        }
+
+        // The crop is linear across the sensor, so the factor that restores the
+        // old coverage is the ratio of the half-angle tangents — not of the
+        // angles themselves, which would drift further the wider the lens.
+        let rad = Double.pi / 180
+        let ratio = tan(Double(widest.videoFieldOfView) / 2 * rad)
+                  / tan(Double(before) / 2 * rad)
+        return CGFloat(max(1, ratio))
     }
 
     private func configureAudioSession() throws {

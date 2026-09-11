@@ -111,9 +111,12 @@ struct CameraView: View {
             // Volume buttons act as a shutter (Apple's sanctioned capture-event
             // API): press once to start recording, press again to stop.
             if #available(iOS 17.2, *) {
-                VolumeShutterBridge {
-                    Task { await handleRecordTap() }
-                }
+                // The same two entry points the on-screen shutter uses, so tap
+                // and hold behave identically whichever one is pressed.
+                VolumeShutterBridge(
+                    onPress:   { handlePressDown() },
+                    onRelease: { handleRelease() }
+                )
                 .frame(width: 0, height: 0)
                 .accessibilityHidden(true)
             }
@@ -691,22 +694,39 @@ struct CameraView: View {
 
 // MARK: - VolumeShutterBridge
 
-/// Bridges the hardware volume buttons to the record action via
-/// AVCaptureEventInteraction — the system API for camera hardware triggers.
-/// Only fires while a capture session is active, so it can't hijack the
-/// volume buttons anywhere else in the app.
+/// Bridges the hardware capture buttons — the volume keys and, on the phones
+/// that have it, Camera Control — to the shutter via AVCaptureEventInteraction,
+/// the system API for camera hardware triggers. Only fires while a capture
+/// session is active, so it can't hijack the volume buttons elsewhere.
+///
+/// Reports the whole press, not just its start. The event carries a phase —
+/// begins, ends, or is cancelled — and forwarding both ends of it is what lets
+/// the hardware button do exactly what the on-screen shutter does: a quick
+/// press records a fixed-length clip, holding it records for as long as it's
+/// held. Listening only for `.began` meant the hardware button could do half
+/// of what the finger could.
 @available(iOS 17.2, *)
 private struct VolumeShutterBridge: UIViewRepresentable {
     let onPress: () -> Void
+    let onRelease: () -> Void
 
-    func makeCoordinator() -> Coordinator { Coordinator(onPress: onPress) }
+    func makeCoordinator() -> Coordinator { Coordinator(onPress: onPress, onRelease: onRelease) }
 
     func makeUIView(context: Context) -> UIView {
         let view = UIView(frame: .zero)
         let coordinator = context.coordinator
         let interaction = AVCaptureEventInteraction { event in
-            guard event.phase == .began else { return }
-            coordinator.onPress()
+            switch event.phase {
+            case .began:
+                coordinator.onPress()
+            // A cancelled press still has to release the shutter, or a hold
+            // interrupted by the system would record until the phone ran out
+            // of storage.
+            case .ended, .cancelled:
+                coordinator.onRelease()
+            @unknown default:
+                break
+            }
         }
         interaction.isEnabled = true
         view.addInteraction(interaction)
@@ -715,10 +735,15 @@ private struct VolumeShutterBridge: UIViewRepresentable {
 
     func updateUIView(_ view: UIView, context: Context) {
         context.coordinator.onPress = onPress
+        context.coordinator.onRelease = onRelease
     }
 
     final class Coordinator {
         var onPress: () -> Void
-        init(onPress: @escaping () -> Void) { self.onPress = onPress }
+        var onRelease: () -> Void
+        init(onPress: @escaping () -> Void, onRelease: @escaping () -> Void) {
+            self.onPress = onPress
+            self.onRelease = onRelease
+        }
     }
 }
